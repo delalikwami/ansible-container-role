@@ -1,0 +1,102 @@
+---
+- name: Install ansible
+  apt:
+    name: ansible
+    update_cache: yes
+  become: true
+
+# Add repository and install Docker
+- name: Install packages to allow apt to use a repo over https
+  apt:
+    name: "{{ docker_packages }}"
+    force_apt_get: yes
+  vars:
+    docker_packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+  become: true
+
+- name: Add Docker's GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+  become: true
+
+- name: Add Docker stable repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+    update_cache: yes
+  become: true
+
+- name: Install Docker
+  apt: >
+    name=docker-ce
+    force_apt_get=yes
+  become: true
+
+- name: Ensure existence of Docker group
+  group:
+    name: docker
+    state: present
+  become: true
+
+- name: Add remote user to docker group
+  user:
+    name: "{{ remote_user }}"
+    groups: docker
+    append: yes
+  register: result
+  become: true
+
+# - name: Activate group change
+#   command: newgrp docker
+#   when: result is succeeded
+
+- name: Ensure docker service is started and enabled
+  service:
+    name: docker
+    state: started
+    enabled: true
+  become: true
+
+# Install Pip and relevant packages for ansible container
+- name: Install Pip
+  apt:
+    name: "{{ pip_packages }}"
+  vars:
+    pip_packages:
+      - python-pip
+      - python-setuptools
+      - python-wheel
+      - virtualenv
+  become: true
+
+- name: Downgrade pip for ansible-container installation
+  pip:
+    name: pip
+    version: 9.0.3
+    virtualenv: "{{ path_to_virtualenv }}"
+    virtualenv_site_packages: yes
+
+- name: Set docker python package version
+  pip:
+    name: docker
+    version: 2.7.0
+    virtualenv: "{{ path_to_virtualenv }}"
+
+- name: Set ruamel.yaml version
+  pip:
+    name: ruamel.yaml
+    version: 0.15.51
+    virtualenv: "{{ path_to_virtualenv }}"
+
+# Install ansible container
+- name: Install ansible container
+  pip:
+    name: "{{ ansible_container_packages }}"
+    virtualenv: "{{ path_to_virtualenv }}"
+  vars:
+    ansible_container_packages:
+      - ansible-container[docker]
+      - ansible-container[openshift]

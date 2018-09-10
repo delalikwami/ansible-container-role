@@ -1,0 +1,6 @@
+---
+- name: Configure webserver for running Ansible container
+  hosts: webservers
+  become: True
+  roles:
+    - ansible-container-test

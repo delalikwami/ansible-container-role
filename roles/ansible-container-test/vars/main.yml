@@ -1,0 +1,4 @@
+---
+# vars file for ansible-container-test
+remote_user: vagrant
+path_to_virtualenv: '/home/{{ remote_user }}/venv'
